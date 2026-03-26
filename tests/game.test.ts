@@ -6,98 +6,124 @@ import { InvalidWordError } from "../src/game/errors/InvalidWordError"
 import { FakeDictionary } from "./doubles/FakeDictionary"
 
 describe("Game initialization", () => {
-  it("Given a dictionary, When a game is created, Then it should create a grid of 6 rows", () => {
-    const dictionary = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
+  it("Given a dictionary, When a game is created, Then it should start with no attempts", () => {
+    const dict = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
 
-    const game = new Sutom(dictionary)
+    const game = new Sutom(dict)
 
-    expect(game.grid.length).toBe(6)
-  })
-
-  it("Given a dictionary, When a game is created, Then each row should have the correct number of columns", () => {
-    const dictionary = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
-
-    const game = new Sutom(dictionary)
-
-    game.grid.forEach((row) => {
-      expect(row.length).toBe(5)
-    })
+    expect(game.attempts).toHaveLength(0)
   })
 
   it("Given a dictionary, When a game is created, Then it should use the secret word provided by the dictionary", () => {
-    const dictionary = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
+    const dict = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
 
-    const game = new Sutom(dictionary)
+    const game = new Sutom(dict)
 
     expect(game.solution).toBe("LIVRE")
   })
+
+  it("Given a new game, When it is created, Then its status should be IN_PROGRESS", () => {
+    const dict = new FakeDictionary(["LIVRE"], "LIVRE")
+
+    const game = new Sutom(dict)
+
+    expect(game.status).toBe("IN_PROGRESS")
+  })
 })
 
-describe("Playing guesses", () => {
-  it("Given a game, When the player plays a word, Then it should be added to the first empty row", () => {
-    const dictionary = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
-    const game = new Sutom(dictionary)
+describe("Playing wordes", () => {
+  it("Given a valid word, When the player plays, Then the result should be stored in attempts", () => {
+    const dict = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
+    const game = new Sutom(dict)
 
     game.play("RAMER")
 
-    expect(game.grid[0]).toEqual(["R", "A", "M", "E", "R"])
+    expect(game.attempts).toHaveLength(1)
+    expect(game.attempts[0].word).toBe("RAMER")
+    expect(game.attempts[0].letters.map((item) => item.feedback)).toEqual([
+      "MISPLACED",
+      "ABSENT",
+      "ABSENT",
+      "MISPLACED",
+      "ABSENT",
+    ])
   })
 
-  it("Given a game, When the player plays multiple words, Then each word should fill the next row", () => {
-    const dictionary = new FakeDictionary(["LIVRE", "RAMER", "SALUT"], "LIVRE")
-    const game = new Sutom(dictionary)
+  it("Given multiple valid wordes, When the player plays, Then all results should be stored in attempts", () => {
+    const dict = new FakeDictionary(["LIVRE", "RAMER", "SALUT"], "LIVRE")
+    const game = new Sutom(dict)
 
     game.play("RAMER")
     game.play("SALUT")
 
-    expect(game.grid[0]).toEqual(["R", "A", "M", "E", "R"])
-    expect(game.grid[1]).toEqual(["S", "A", "L", "U", "T"])
+    expect(game.attempts).toHaveLength(2)
+    expect(game.attempts[0].word).toBe("RAMER")
+    expect(game.attempts[1].word).toBe("SALUT")
   })
 
-  it("Given a game, When the player plays a word with an invalid length, Then it should throw an InvalidGuessLengthError", () => {
-    const dictionary = new FakeDictionary(["LIVRE", "CHAT"], "LIVRE")
-    const game = new Sutom(dictionary)
+  it("Given a game, When the player plays a word with an invalid length, Then it should throw an InvalidwordLengthError", () => {
+    const dict = new FakeDictionary(["LIVRE", "CHAT"], "LIVRE")
+    const game = new Sutom(dict)
 
     expect(() => game.play("CHAT")).toThrow(InvalidGuessLengthError)
+    expect(game.attempts).toHaveLength(0)
   })
 
   it("Given a game, When the player plays a word that is not in the dictionary, Then it should throw an InvalidWordError", () => {
-    const dictionary = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
-    const game = new Sutom(dictionary)
+    const dict = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
+    const game = new Sutom(dict)
 
     expect(() => game.play("SALUT")).toThrow(InvalidWordError)
+    expect(game.attempts).toHaveLength(0)
   })
 
   it("Given a game, When the player plays a lowercase word, Then it should store it in uppercase", () => {
-    const dictionary = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
-    const game = new Sutom(dictionary)
+    const dict = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
+    const game = new Sutom(dict)
 
-    game.play("ramer")
+    const result = game.play("ramer")
 
-    expect(game.grid[0]).toEqual(["R", "A", "M", "E", "R"])
+    expect(result.word).toBe("RAMER")
+    expect(game.attempts[0].word).toBe("RAMER")
   })
 
   it("Given a game, When the player plays a word with accents, Then it should store it without accents and in uppercase", () => {
-    const dictionary = new FakeDictionary(["OCEAN"], "OCEAN")
-    const game = new Sutom(dictionary)
+    const dict = new FakeDictionary(["OCEAN"], "OCEAN")
+    const game = new Sutom(dict)
 
-    game.play("océan")
+    const result = game.play("océan")
 
-    expect(game.grid[0]).toEqual(["O", "C", "E", "A", "N"])
+    expect(result.word).toBe("OCEAN")
+    expect(result.letters.map((item) => item.letter)).toEqual([
+      "O",
+      "C",
+      "E",
+      "A",
+      "N",
+    ])
+  })
+
+  it("Given a valid word, When the player plays, Then it should return the played word and its feedback", () => {
+    const dict = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
+    const game = new Sutom(dict)
+
+    const result = game.play("RAMER")
+
+    expect(result.word).toBe("RAMER")
+    expect(result.letters.map((item) => item.feedback)).toEqual([
+      "MISPLACED",
+      "ABSENT",
+      "ABSENT",
+      "MISPLACED",
+      "ABSENT",
+    ])
   })
 })
 
 describe("Game status", () => {
-  it("Given a new game, When it is created, Then its status should be IN_PROGRESS", () => {
-    const dictionary = new FakeDictionary(["LIVRE"], "LIVRE")
-    const game = new Sutom(dictionary)
-
-    expect(game.status).toBe("IN_PROGRESS")
-  })
-
   it("Given a game, When the player finds the secret word, Then the status should be WON", () => {
-    const dictionary = new FakeDictionary(["LIVRE"], "LIVRE")
-    const game = new Sutom(dictionary)
+    const dict = new FakeDictionary(["LIVRE"], "LIVRE")
+    const game = new Sutom(dict)
 
     game.play("LIVRE")
 
@@ -105,8 +131,8 @@ describe("Game status", () => {
   })
 
   it("Given a game already won, When the player tries to play again, Then it should throw a GameAlreadyFinishedError", () => {
-    const dictionary = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
-    const game = new Sutom(dictionary)
+    const dict = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
+    const game = new Sutom(dict)
 
     game.play("LIVRE")
 
@@ -114,11 +140,11 @@ describe("Game status", () => {
   })
 
   it("Given a game, When the player uses all 6 attempts without finding the secret word, Then the status should be LOST", () => {
-    const dictionary = new FakeDictionary(
+    const dict = new FakeDictionary(
       ["LIVRE", "RAMER", "SALUT", "MOTIF", "TABLE", "CHIEN", "POMME"],
       "LIVRE"
     )
-    const game = new Sutom(dictionary)
+    const game = new Sutom(dict)
 
     game.play("RAMER")
     game.play("SALUT")
@@ -131,11 +157,11 @@ describe("Game status", () => {
   })
 
   it("Given a lost game, When the player tries to play again, Then it should throw a GameAlreadyFinishedError", () => {
-    const dictionary = new FakeDictionary(
+    const dict = new FakeDictionary(
       ["LIVRE", "RAMER", "SALUT", "MOTIF", "TABLE", "CHIEN", "POMME"],
       "LIVRE"
     )
-    const game = new Sutom(dictionary)
+    const game = new Sutom(dict)
 
     game.play("RAMER")
     game.play("SALUT")
@@ -146,36 +172,4 @@ describe("Game status", () => {
 
     expect(() => game.play("LIVRE")).toThrow(GameAlreadyFinishedError)
   })
-
-  it("Given a valid guess, When the player plays, Then it should return the played word and its feedback", () => {
-  const dictionary = new FakeDictionary(["LIVRE", "RAMER"], "LIVRE")
-  const game = new Sutom(dictionary)
-
-  const result = game.play("RAMER")
-
-  expect(result.guess).toBe("RAMER")
-  expect(result.feedbacks.map((item) => item.feedback)).toEqual([
-    "MISPLACED",
-    "ABSENT",
-    "ABSENT",
-    "MISPLACED",
-    "ABSENT",
-  ])
-})
-
-it("Given a lowercase guess with accents, When the player plays, Then it should return the normalized word", () => {
-  const dictionary = new FakeDictionary(["OCEAN"], "OCEAN")
-  const game = new Sutom(dictionary)
-
-  const result = game.play("océan")
-
-  expect(result.guess).toBe("OCEAN")
-  expect(result.feedbacks.map((item) => item.letter)).toEqual([
-    "O",
-    "C",
-    "E",
-    "A",
-    "N",
-  ])
-})
 })

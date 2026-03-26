@@ -1,4 +1,6 @@
+import { Word } from "./types"
+
 export interface Dictionary {
-  isValid(word: string): boolean
-  pickSecretWord(): string
+  isValid(word: Word): boolean
+  pickSecretWord(): Word
 }

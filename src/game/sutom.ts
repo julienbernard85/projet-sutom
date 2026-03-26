@@ -1,92 +1,83 @@
 import { Dictionary } from "./Dictionary"
-import { GameStatus } from "./types"
-import { normalizeWord } from "./normalizeWord"
-import { FeedbackEvaluator } from "./FeedbackEvaluator"
-import { GuessResult } from "./GuessResult"
+import { GameStatus, Word } from "./types"
+import { createWord } from "./createWord"
+import { WordChecker } from "./WordChecker"
+import { Attempt } from "./Attempt"
 import { InvalidGuessLengthError } from "./errors/InvalidGuessLengthError"
 import { InvalidWordError } from "./errors/InvalidWordError"
 import { GameAlreadyFinishedError } from "./errors/GameAlreadyFinishedError"
 
 export class Sutom {
-  solution: string
-  grid: (string | null)[][]
+  solution: Word
+  attempts: Attempt[]
   status: GameStatus
 
-  private readonly feedbackEvaluator: FeedbackEvaluator
+  private readonly checker: WordChecker
+  private static readonly MAX_TRIES = 6
 
-  constructor(private readonly dictionary: Dictionary) {
-    this.solution = normalizeWord(this.dictionary.pickSecretWord())
-    this.grid = this.createGrid(this.solution.length)
+  constructor(private readonly dict: Dictionary) {
+    this.solution = this.dict.pickSecretWord()
+    this.attempts = []
     this.status = "IN_PROGRESS"
-    this.feedbackEvaluator = new FeedbackEvaluator()
+    this.checker = new WordChecker()
   }
 
-  play(guess: string): GuessResult {
-    this.ensureGameIsStillPlayable()
-
-    const normalizedGuess = this.normalizeGuess(guess)
-
-    this.ensureGuessHasValidLength(normalizedGuess)
-    this.ensureWordExistsInDictionary(normalizedGuess)
-
-    const emptyRowIndex = this.findFirstEmptyRow()
-
-    if (emptyRowIndex === -1) {
-      throw new GameAlreadyFinishedError()
-    }
-
-    this.grid[emptyRowIndex] = normalizedGuess.split("")
-
-    const feedbacks = this.feedbackEvaluator.evaluate(
-      normalizedGuess,
-      this.solution
-    )
-
-    this.updateStatus(normalizedGuess)
-
-    return new GuessResult(normalizedGuess, feedbacks)
+  get remainingTries(): number {
+    return Sutom.MAX_TRIES - this.attempts.length
   }
 
-  private normalizeGuess(guess: string): string {
-    return normalizeWord(guess)
+  get wordLength(): number {
+    return this.solution.length
+  }
+  
+  play(input: string): Attempt {
+    this.ensurePlayable()
+
+    const guess = createWord(input)
+
+    this.validateGuess(guess)
+
+    const marks = this.checker.evaluate(guess, this.solution)
+    const result = new Attempt(guess, marks)
+
+    this.attempts.push(result)
+    this.updateGameStatus(guess)
+
+    return result
   }
 
-  private ensureGameIsStillPlayable(): void {
+
+  private validateGuess(guess: Word): void {
+    this.checkLength(guess)
+    this.checkWord(guess)
+  }
+
+  private ensurePlayable(): void {
     if (this.status !== "IN_PROGRESS") {
       throw new GameAlreadyFinishedError()
     }
   }
 
-  private ensureGuessHasValidLength(guess: string): void {
+  private checkLength(guess: Word): void {
     if (guess.length !== this.solution.length) {
       throw new InvalidGuessLengthError(this.solution.length, guess.length)
     }
   }
 
-  private ensureWordExistsInDictionary(guess: string): void {
-    if (!this.dictionary.isValid(guess)) {
+  private checkWord(guess: Word): void {
+    if (!this.dict.isValid(guess)) {
       throw new InvalidWordError(guess)
     }
   }
 
-  private findFirstEmptyRow(): number {
-    return this.grid.findIndex((row) => row.every((cell) => cell === null))
-  }
-
-  private updateStatus(guess: string): void {
+  private updateGameStatus(guess: Word): void {
     if (guess === this.solution) {
       this.status = "WON"
       return
     }
 
-    if (this.findFirstEmptyRow() === -1) {
+    if (this.attempts.length >= Sutom.MAX_TRIES) {
       this.status = "LOST"
     }
-  }
-
-  private createGrid(wordLength: number): (string | null)[][] {
-    return Array.from({ length: 6 }, () =>
-      Array.from({ length: wordLength }, () => null)
-    )
   }
 }
