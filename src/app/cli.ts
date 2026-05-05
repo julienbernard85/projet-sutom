@@ -7,7 +7,6 @@ import { InvalidGuessLengthError } from "../game/errors/InvalidGuessLengthError"
 import { InvalidWordError } from "../game/errors/InvalidWordError"
 import { InvalidWordFormatError } from "../game/errors/InvalidWordFormatError"
 import { GameAlreadyFinishedError } from "../game/errors/GameAlreadyFinishedError"
-import { Attempt } from "../game/Attempt"
 import { LetterFeedback } from "../game/types"
 
 async function startCli(): Promise<void> {
@@ -24,9 +23,10 @@ async function startCli(): Promise<void> {
   while (true) {
     try {
       const answer = await rl.question("Proposition : ")
-      const result = game.play(answer)
 
-      printResult(result)
+      game.play(answer)
+
+      printBoard(game)
       printAttemptsLeft(game)
 
       if (game.status === "WON") {
@@ -48,14 +48,6 @@ async function startCli(): Promise<void> {
   rl.close()
 }
 
-function printResult(result: Attempt): void {
-  const line = result.letters
-    .map((letter) => `${letter.letter}:${toSymbol(letter.feedback)}`)
-    .join(" ")
-
-  console.log(line)
-}
-
 function toSymbol(state: LetterFeedback): string {
   if (state === "CORRECT") {
     return "🟩"
@@ -66,6 +58,23 @@ function toSymbol(state: LetterFeedback): string {
   }
 
   return "⬛"
+}
+
+function printBoard(game: Sutom): void {
+  console.log("")
+
+  if (game.attempts.length === 0) {
+    console.log("Aucune tentative pour le moment.")
+    return
+  }
+
+  game.attempts.forEach((attempt) => {
+    const line = attempt.letters
+      .map((letter) => `[${letter.letter}${toSymbol(letter.feedback)}]`)
+      .join(" ")
+
+    console.log(line)
+  })
 }
 
 function printAttemptsLeft(game: Sutom): void {

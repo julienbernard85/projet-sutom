@@ -4,28 +4,50 @@ import { createWord } from "../src/game/createWord"
 
 describe("LocalDictionary", () => {
   it("Given a local dictionary, When a known word is checked, Then it should return true", () => {
+    // Given
     const dict = new LocalDictionary(["LIVRE", "RAMER"])
+    const word = createWord("LIVRE")
 
-    expect(dict.isValid(createWord("LIVRE"))).toBe(true)
+    // When
+    const result = dict.isValid(word)
+
+    // Then
+    expect(result).toBe(true)
   })
 
   it("Given a local dictionary, When an unknown word is checked, Then it should return false", () => {
+    // Given
     const dict = new LocalDictionary(["LIVRE", "RAMER"])
+    const word = createWord("SALUT")
 
-    expect(dict.isValid(createWord("SALUT"))).toBe(false)
+    // When
+    const result = dict.isValid(word)
+
+    // Then
+    expect(result).toBe(false)
   })
 
   it("Given a local dictionary, When a lowercase or accented word is checked, Then it should still be recognized once normalized", () => {
+    // Given
     const dict = new LocalDictionary(["OCEAN", "RAMER"])
+    const word = createWord("océan")
 
-    expect(dict.isValid(createWord("océan"))).toBe(true)
+    // When
+    const result = dict.isValid(word)
+
+    // Then
+    expect(result).toBe(true)
   })
 
   it("Given a local dictionary, When a secret word is picked, Then it should come from the available words", () => {
+    // Given
     const dict = new LocalDictionary(["LIVRE", "RAMER"])
+    const availableWords = ["LIVRE", "RAMER"]
 
+    // When
     const secret = dict.pickSecretWord()
 
-    expect(["LIVRE", "RAMER"]).toContain(secret)
+    // Then
+    expect(availableWords).toContain(secret)
   })
 })
